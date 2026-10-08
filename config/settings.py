@@ -30,6 +30,7 @@ SECRET_KEY = 'django-insecure-d+j%b!t7oa@_@c)o!$mfy%a@=1s7bfvi-h+=t7(h%rwklppu#k
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 
 # Application definition

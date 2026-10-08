@@ -196,6 +196,15 @@ class RouteApiTests(TestCase):
         response = self.client.get(reverse("saved-map", args=[result.token]))
         self.assertEqual(response.status_code, 410)
 
+    def test_saved_map_allows_cross_origin_referrer_for_tiles(self):
+        result = MapResult.objects.create(
+            cache_key="active-map", result={}, calculated_at=timezone.now(),
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        response = self.client.get(reverse("saved-map", args=[result.token]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
+
     def test_non_usa_coordinates_are_rejected_without_provider_calls(self):
         response = self.client.post(reverse("route"), {
             "start": {"latitude": 18.4655, "longitude": -66.1057},
