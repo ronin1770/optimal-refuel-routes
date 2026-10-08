@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saved refueling route</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+    #summary { padding: .7rem 1rem; background: #fff; }
+    #map { height: calc(100% - 3.5rem); min-height: 360px; }
+  </style>
+</head>
+<body>
+  <div id="summary">
+    Saved calculation: {{ calculated_at|date:"c" }} · Fuel cost:
+    ${{ route_result.fuel_plan.total_purchase_cost }} · {{ route_result.verification_status }}
+  </div>
+  <div id="map" aria-label="Saved route map"></div>
+  {{ route_result|json_script:"route-result" }}
+  {{ tile_url|json_script:"tile-url" }}
+  {{ tile_attribution|json_script:"tile-attribution" }}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const result = JSON.parse(document.getElementById('route-result').textContent);
+    const map = L.map('map');
+    L.tileLayer(
+      JSON.parse(document.getElementById('tile-url').textContent),
+      {attribution: JSON.parse(document.getElementById('tile-attribution').textContent)}
+    ).addTo(map);
+    const route = L.polyline(result.route.geometry.map(point => [point[1], point[0]]), {color: '#1769aa', weight: 5}).addTo(map);
+    L.marker([result.start.latitude, result.start.longitude]).bindPopup('Start').addTo(map);
+    result.fuel_plan.stops.forEach(stop => {
+      L.marker([stop.latitude, stop.longitude])
+        .bindPopup(`${stop.name}<br>$${stop.retail_price}/gal<br>${stop.gallons_purchased} gal · $${stop.purchase_cost}`)
+        .addTo(map);
+    });
+    L.marker([result.finish.latitude, result.finish.longitude]).bindPopup('Finish').addTo(map);
+    map.fitBounds(route.getBounds(), {padding: [20, 20]});
+  </script>
+</body>
+</html>

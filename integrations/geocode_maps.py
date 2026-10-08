@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from functools import lru_cache
 
 import httpx
 
@@ -60,7 +61,11 @@ class GeocodeMapsClient:
                 },
             )
         except (httpx.TimeoutException, httpx.NetworkError) as exc:
-            raise ProviderTransientError(f"Geocoding network error: {exc}") from exc
+            # httpx exception text can include the full request URL. Keep the
+            # API key out of persisted attempt errors and application logs.
+            raise ProviderTransientError(
+                f"Geocoding network error ({type(exc).__name__})"
+            ) from exc
         if response.status_code in (401, 403):
             raise ProviderAccessError(f"Geocode Maps rejected access with HTTP {response.status_code}")
         if response.status_code in (429, 502, 503, 504):
@@ -84,3 +89,9 @@ class GeocodeMapsClient:
 
     def __exit__(self, *_args):
         self.close()
+
+
+@lru_cache(maxsize=4)
+def get_geocode_maps_client(api_key: str, base_url: str):
+    """Return one reusable synchronous client per provider configuration."""
+    return GeocodeMapsClient(api_key=api_key, base_url=base_url)

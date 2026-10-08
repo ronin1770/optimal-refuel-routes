@@ -108,3 +108,9 @@ class JobLease(models.Model):
     owner_token = models.CharField(max_length=64)
     expires_at = models.DateTimeField()
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class StationDatasetVersion(models.Model):
+    name = models.CharField(max_length=32, primary_key=True, default="stations")
+    version = models.PositiveBigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)

@@ -11,7 +11,7 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlparse
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from integrations.exceptions import (
@@ -409,10 +409,22 @@ def reconcile_allowance(value):
 def reserve_attempt(*, configured_rate, initial_remaining):
     now = timezone.now()
     with transaction.atomic():
-        state, _ = ProviderState.objects.select_for_update().get_or_create(
-            provider=PROVIDER,
-            defaults={"remaining_initial_allowance": max(0, initial_remaining)},
-        )
+        # Write first: SQLite has no SELECT FOR UPDATE, so this serializes all
+        # workers before any process reads/decrements the shared allowance.
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO stations_providerstate
+                  (provider, remaining_initial_allowance, next_request_at, not_before, updated_at)
+                VALUES (%s, %s, NULL, NULL, %s)
+                """,
+                [PROVIDER, max(0, initial_remaining), now],
+            )
+            cursor.execute(
+                "UPDATE stations_providerstate SET updated_at = updated_at WHERE provider = %s",
+                [PROVIDER],
+            )
+        state = ProviderState.objects.get(provider=PROVIDER)
         if state.not_before and state.not_before > now:
             raise ProviderSuspendedError(f"provider is suspended until {state.not_before.isoformat()}")
         using_initial_rate = state.remaining_initial_allowance > 0
@@ -432,7 +444,21 @@ def reserve_attempt(*, configured_rate, initial_remaining):
 def suspend_provider(seconds):
     until = timezone.now() + timedelta(seconds=seconds)
     with transaction.atomic():
-        state, _ = ProviderState.objects.select_for_update().get_or_create(provider=PROVIDER)
+        now = timezone.now()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO stations_providerstate
+                  (provider, remaining_initial_allowance, next_request_at, not_before, updated_at)
+                VALUES (%s, 0, NULL, NULL, %s)
+                """,
+                [PROVIDER, now],
+            )
+            cursor.execute(
+                "UPDATE stations_providerstate SET updated_at = updated_at WHERE provider = %s",
+                [PROVIDER],
+            )
+        state = ProviderState.objects.get(provider=PROVIDER)
         if not state.not_before or state.not_before < until:
             state.not_before = until
             state.save(update_fields=["not_before", "updated_at"])

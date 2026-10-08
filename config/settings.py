@@ -91,7 +91,7 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
         "LOCATION": "django_cache",
-        "TIMEOUT": 3600,
+        "TIMEOUT": 86400,
     }
 }
 
@@ -101,6 +101,20 @@ GEOCODE_REQUESTS_PER_SECOND = float(os.getenv("GEOCODE_REQUESTS_PER_SECOND", "4"
 GEOCODE_INITIAL_REQUESTS_REMAINING = int(os.getenv("GEOCODE_INITIAL_REQUESTS_REMAINING", "0") or "0")
 GEOCODE_JOB_LEASE_SECONDS = int(os.getenv("GEOCODE_JOB_LEASE_SECONDS", "120"))
 GEOCODE_JOB_RENEWAL_SECONDS = int(os.getenv("GEOCODE_JOB_RENEWAL_SECONDS", "30"))
+
+OSRM_BASE_URL = os.getenv("OSRM_BASE_URL", "https://router.project-osrm.org")
+OSRM_REQUESTS_PER_SECOND = float(os.getenv("OSRM_REQUESTS_PER_SECOND", "1"))
+ROUTE_CORRIDOR_MILES = float(os.getenv("ROUTE_CORRIDOR_MILES", "5"))
+ROUTE_CACHE_SECONDS = int(os.getenv("ROUTE_CACHE_SECONDS", "86400"))
+ROUTE_PROVIDER_DEADLINE_SECONDS = float(os.getenv("ROUTE_PROVIDER_DEADLINE_SECONDS", "60"))
+USA_BOUNDARY_GEOJSON = os.getenv("USA_BOUNDARY_GEOJSON") or str(
+    BASE_DIR / "routing" / "data" / "us_states_dc_2025_500k.geojson"
+)
+MAP_TILE_URL = os.getenv("MAP_TILE_URL", "https://tile.openstreetmap.org/{z}/{x}/{y}.png")
+MAP_TILE_ATTRIBUTION = os.getenv(
+    "MAP_TILE_ATTRIBUTION",
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+)
 
 
 # Password validation

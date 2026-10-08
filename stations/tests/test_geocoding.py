@@ -44,6 +44,8 @@ class GeocodeMapsClientTests(TestCase):
     def test_api_key_is_sent_as_query_parameter_not_bearer_header(self):
         def handler(request):
             self.assertEqual(request.url.params["api_key"], "secret-key")
+            self.assertEqual(request.url.params["addressdetails"], "1")
+            self.assertEqual(request.url.params["countrycodes"], "us")
             self.assertNotIn("authorization", request.headers)
             return httpx.Response(200, json=[])
 
